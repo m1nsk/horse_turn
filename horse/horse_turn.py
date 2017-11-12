@@ -56,6 +56,7 @@ class Game:
 
     def end_of_game_decorator(func):
         def decorated_func(self, current_node):
+            """TODO: clear oll this if-else gargage"""
             current_field = self.mem_field.get_field(current_node.coord)
             if self.challenger.turn_num and not current_field.turn_num:
                     self.mem_field.set_field(current_node)
@@ -67,6 +68,7 @@ class Game:
 
     def mem_decorator(func):
         def decorated_func(self, current_node):
+            """TODO: clear oll this if-else gargage"""
             if current_node.turn_num * 2 < self.challenger.turn_num and self.challenger.turn_num:
                 relative_finish = self.finish - current_node.coord
                 current_field = self.mem_field.get_field(current_node.coord)
@@ -128,6 +130,7 @@ class Game:
         self.next_turn(current_node)
 
     def recover_node(self, way_coord):
+        """TODO: fix turn history generator"""
         loop_flag = True
         while loop_flag:
             prev_node = self.mem_field.get_field(way_coord)
