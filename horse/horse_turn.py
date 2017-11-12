@@ -7,7 +7,7 @@ import math as math
 mem_field = namedtuple('mem_field', ['turn_num', 'prev_node'])
 node = namedtuple('node', ['coord', 'turn_num', 'prev_node'])
 coord = namedtuple('coord', ['x', 'y'])
-challenger = namedtuple('challenger', ['turn_num', 'node'])
+challenger = namedtuple('challenger', ['turn_num', 'node', 'finish_node'])
 
 
 class Coord(coord):
@@ -33,19 +33,6 @@ class MemField:
         return mem_field(*self.field[cell_coord.x, cell_coord.y])
 
 
-class GameField:
-    def __init__(self, field_size, start):
-        self.start = start
-        self.finish = finish
-        self.field = np.zeros((field_size, field_size))
-
-    def set_field(self, cell_coord, data):
-        self.field[cell_coord.coord.x, cell_coord.coord.y] = data
-
-    def get_field(self, cell_coord):
-        return self.field[cell_coord.x, cell_coord.y]
-
-
 class NodeQuery:
     def __init__(self, initial):
         self.deque = deque(initial)
@@ -64,7 +51,7 @@ class Game:
     def end_of_game_decorator(func):
         def decorated_func(self, current_node):
             if current_node.coord == self.finish:
-                self.challenger = challenger(current_node.turn_num, current_node)
+                self.challenger = challenger(current_node.turn_num, current_node, current_node)
 
     def mem_decorator(func):
         def decorated_func(self, current_node):
@@ -75,7 +62,8 @@ class Game:
                     self.mem_field.set_field(current_node)
                     field = self.mem_field.get_field(relative_finish)
                     if field.turn_num and field.turn_num < self.challenger.turn_num:
-                        self.challenger = challenger(current_node.turn_num + field.turn_num, current_node)
+                        finish_node = node(relative_finish, *field)
+                        self.challenger = challenger(current_node.turn_num + field.turn_num, current_node, finish_node)
                     else:
                         func(self, current_node)
 
@@ -89,13 +77,13 @@ class Game:
         start_field = node(start, 0, None)
         self.node_query = NodeQuery((start_field,))
         self.turn_counter = 0
-        self.challenger = challenger(size, start_field)
+        self.challenger = challenger(size, start_field, start_field)
 
     def start_calculation(self):
         while len(self.node_query):
             node = self.node_query.get_node()
             self.next_turn(node)
-        print(self.challenger)
+        self.recover_horse_way()
 
     @mem_decorator
     def next_turn(self, current_node):
@@ -110,20 +98,29 @@ class Game:
             self.node_query.add_nodes(next_nodes)
 
     def recover_node(self, way_node):
-        while way_node.prev_node:
-            prev_node = self.mem_field.get_field(way_node.prev_node)
-            yield prev_node.coord - way_node.coord
+        while way_node.prev_node.turn_num:
+            prev_node = node(way_node.prev_node.coord, *self.mem_field.get_field(way_node.prev_node.coord))
+            print(way_node, 'wn')
+            print(prev_node, 'pw')
+            print(way_node.coord - prev_node.coord, 'delta')
+            yield way_node.coord - prev_node.coord
             way_node = prev_node
         return
 
     def recover_horse_way(self):
         deq = deque()
-        deq.extend(self.recover_node(self.challenger.node))
+        before_node = list(self.recover_node(self.challenger.node))
+        deq.extend(reversed(before_node))
+        after_node = list(self.recover_node(self.challenger.finish_node))
+        deq.extend(reversed(after_node))
+        print(deq)
 
 
 
 size = random.randint(0, 100)
 start = Coord(math.floor(size / 2), math.floor(size / 2))
 finish = Coord(random.randint(0, size), random.randint(0, size))
+print(start, 'start')
+print(finish, 'finish')
 game = Game(size, finish)
 game.start_calculation()
