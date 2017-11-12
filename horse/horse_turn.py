@@ -33,20 +33,6 @@ class MemField:
         return mem_field(*self.field[cell_coord.x, cell_coord.y])
 
 
-class NodeQuery:
-    def __init__(self, initial):
-        self.deque = deque(initial)
-
-    def __len__(self):
-        return self.deque.__len__()
-
-    def add_nodes(self, nodes):
-        self.deque.extend(nodes)
-
-    def get_node(self):
-        return self.deque.popleft()
-
-
 class Game:
     def end_of_game_decorator(func):
         def decorated_func(self, current_node):
@@ -75,13 +61,13 @@ class Game:
         self.start = Coord(math.floor(self.size / 2), math.floor(self.size / 2))
         self.mem_field = MemField(self.size, self.start)
         start_field = node(start, 0, None)
-        self.node_query = NodeQuery((start_field,))
+        self.node_query = deque((start_field,))
         self.turn_counter = 0
         self.challenger = challenger(size, start_field, start_field)
 
     def start_calculation(self):
         while len(self.node_query):
-            node = self.node_query.get_node()
+            node = self.node_query.popleft()
             self.next_turn(node)
         self.recover_horse_way()
 
@@ -95,14 +81,11 @@ class Game:
                     lambda turn: node(turn + current_node.coord, current_node.turn_num + 1, current_node), turns)
                 )
             )
-            self.node_query.add_nodes(next_nodes)
+            self.node_query.extend(next_nodes)
 
     def recover_node(self, way_node):
         while way_node.prev_node.turn_num:
             prev_node = node(way_node.prev_node.coord, *self.mem_field.get_field(way_node.prev_node.coord))
-            print(way_node, 'wn')
-            print(prev_node, 'pw')
-            print(way_node.coord - prev_node.coord, 'delta')
             yield way_node.coord - prev_node.coord
             way_node = prev_node
         return
