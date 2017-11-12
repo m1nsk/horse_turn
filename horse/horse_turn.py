@@ -61,6 +61,7 @@ class Game:
             if self.challenger.turn_num and not current_field.turn_num:
                     self.mem_field.set_field(current_node)
                     if current_node.coord == self.finish:
+                        self.node_query.clear()
                         self.challenger = challenger(current_node.turn_num, current_node.coord, current_node.coord)
                     else:
                         func(self, current_node)
@@ -77,6 +78,7 @@ class Game:
                     if math.fabs(relative_finish.x) < self.size / 2 and math.fabs(relative_finish.y) < size / 2:
                         field = self.mem_field.get_field(relative_finish)
                         if field.turn_num and field.turn_num < self.challenger.turn_num:
+                            self.node_query.clear()
                             self.challenger = challenger(current_node.turn_num + field.turn_num, current_node.coord, relative_finish)
                         else:
                             func(self, current_node)
@@ -158,7 +160,7 @@ class Game:
 size = 500
 start = Coord(0, 0)
 finish = Coord(random.randint(math.floor(size * 8 / 9), size) - math.floor(size / 2), random.randint(math.floor(size * 8 / 9), size) - math.floor(size / 2))
-finish = Coord(222, 244)
+finish = Coord(8, 16)
 print(size, 'size')
 print(start, 'start')
 print(finish, 'finish')
