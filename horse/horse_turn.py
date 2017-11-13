@@ -30,7 +30,7 @@ class Coord(coord):
 class MemField:
     def __init__(self, field_size, start):
         self.start = start
-        empty_field = mem_field(0, start)
+        empty_field = mem_field(None, start)
         self.field = np.array([[empty_field for j in range(field_size)] for i in range(field_size)], dtype=mem_field)
 
     def set_field(self, current_node):
@@ -43,14 +43,15 @@ class MemField:
 
 
 class Game:
+    turns = (Coord(1, 2), Coord(2, 1), Coord(-1, 2), Coord(-2, 1), Coord(1, -2), Coord(2, -1), Coord(-2, -1), Coord(-1, -2))
+
     def time_it(func):
 
         def timed(*args, **kw):
             ts = time.time()
             func(*args, **kw)
             te = time.time()
-
-            print(te - ts)
+            print(te - ts, 'seconds')
 
         return timed
 
@@ -58,32 +59,33 @@ class Game:
         def decorated_func(self, current_node):
             """TODO: clear oll this if-else gargage"""
             current_field = self.mem_field.get_field(current_node.coord)
-            if self.challenger.turn_num and not current_field.turn_num:
-                    self.mem_field.set_field(current_node)
-                    if current_node.coord == self.finish:
-                        self.node_query.clear()
-                        self.challenger = challenger(current_node.turn_num, current_node.coord, current_node.coord)
-                    else:
-                        func(self, current_node)
+            if current_field.turn_num is None:
+                self.mem_field.set_field(current_node)
+                if current_node.coord == self.finish:
+                    self.node_query.clear()
+                    self.challenger = challenger(current_node.turn_num, current_node.coord, current_node.coord)
+                    raise EndOfGame
+                else:
+                    func(self, current_node)
+
         return decorated_func
 
     def mem_decorator(func):
         def decorated_func(self, current_node):
             """TODO: clear oll this if-else gargage"""
-            if current_node.turn_num * 2 < self.challenger.turn_num and self.challenger.turn_num:
-                relative_finish = self.finish - current_node.coord
-                current_field = self.mem_field.get_field(current_node.coord)
-                if not current_field.turn_num:
-                    self.mem_field.set_field(current_node)
-                    if math.fabs(relative_finish.x) < self.size / 2 and math.fabs(relative_finish.y) < size / 2:
-                        field = self.mem_field.get_field(relative_finish)
-                        if field.turn_num and field.turn_num < self.challenger.turn_num:
-                            self.node_query.clear()
-                            self.challenger = challenger(current_node.turn_num + field.turn_num, current_node.coord, relative_finish)
-                        else:
-                            func(self, current_node)
+            relative_finish = self.finish - current_node.coord
+            current_field = self.mem_field.get_field(current_node.coord)
+            if current_field.turn_num is None:
+                self.mem_field.set_field(current_node)
+                if math.fabs(relative_finish.x) < self.size / 2 and math.fabs(relative_finish.y) < size / 2:
+                    field = self.mem_field.get_field(relative_finish)
+                    if field.turn_num:
+                        self.challenger = challenger(current_node.turn_num + field.turn_num, current_node.coord, relative_finish)
+                        raise EndOfGame
                     else:
                         func(self, current_node)
+                else:
+                    func(self, current_node)
 
         return decorated_func
 
@@ -96,32 +98,40 @@ class Game:
         self.node_query = deque((start_field,))
         self.turn_counter = 0
         self.challenger = challenger(size, Coord(0, 0), Coord(0, 0))
+        self.node_counter = 0
 
     @time_it
     def start_calculation(self):
-        while len(self.node_query):
-            node = self.node_query.popleft()
-            self.fast_next_turn(node)
-        # self.recover_horse_way()
-        print(self.challenger, 'challenger')
+        try:
+            while len(self.node_query):
+                next_node = self.node_query.popleft()
+                self.fast_next_turn(next_node)
+        except EndOfGame:
+            # self.recover_horse_way()
+            print(self.challenger, 'challenger')
+            print(self.node_counter, 'node_counter')
+            print(next_node.turn_num, 'turn deep')
 
     @time_it
     def start_slow_calculation(self):
-        while len(self.node_query):
-            node = self.node_query.popleft()
-            self.slow_next_turn(node)
-        print(self.challenger, 'challenger')
+        try:
+            while len(self.node_query):
+                next_node = self.node_query.popleft()
+                self.slow_next_turn(next_node)
+        except EndOfGame:
+            print(self.challenger, 'challenger')
+            print(self.node_counter, 'node_counter')
+            print(next_node.turn_num, 'turn deep')
 
     def next_turn(self, current_node):
-        turns = (Coord(1, 2), Coord(2, 1), Coord(-1, 2), Coord(-2, 1), Coord(1, -2), Coord(2, -1), Coord(-2, -1), Coord(-1, -2))
-
-        if node.coord != finish:
-            next_nodes = list(filter(
-                lambda map_node: math.fabs(map_node.coord.x) < self.start.x and math.fabs(map_node.coord.y) < self.start.y, map(
-                    lambda turn: node(turn + current_node.coord, current_node.turn_num + 1, current_node.coord), turns)
+        self.node_counter += 1
+        next_nodes = list(filter(
+            lambda map_node: math.fabs(map_node.coord.x) < self.start.x and math.fabs(map_node.coord.y) < self.start.y,
+                map(
+                    lambda turn: node(turn + current_node.coord, current_node.turn_num + 1, current_node.coord), Game.turns)
                 )
             )
-            self.node_query.extend(next_nodes)
+        self.node_query.extend(next_nodes)
 
     @mem_decorator
     def fast_next_turn(self, current_node):
@@ -160,7 +170,7 @@ class Game:
 size = 500
 start = Coord(0, 0)
 finish = Coord(random.randint(math.floor(size * 8 / 9), size) - math.floor(size / 2), random.randint(math.floor(size * 8 / 9), size) - math.floor(size / 2))
-finish = Coord(8, 16)
+finish = Coord(222, 244)
 print(size, 'size')
 print(start, 'start')
 print(finish, 'finish')
