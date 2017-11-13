@@ -107,7 +107,7 @@ class Game:
                 next_node = self.node_query.popleft()
                 self.fast_next_turn(next_node)
         except EndOfGame:
-            # self.recover_horse_way()
+            self.recover_horse_way()
             print(self.challenger, 'challenger')
             print(self.node_counter, 'node_counter')
             print(next_node.turn_num, 'turn deep')
@@ -163,14 +163,14 @@ class Game:
         deq.extend(reversed(after_node))
         # print(list(reduce(lambda x, y: x + y, deq)))
         # print(self.start - self.finish)
-        print(deq)
+        print(list(map(lambda item: 'x: {0}, y: {1}'.format(item.x, item.y), deq)))
 
 
 
 size = 500
 start = Coord(0, 0)
 finish = Coord(random.randint(math.floor(size * 8 / 9), size) - math.floor(size / 2), random.randint(math.floor(size * 8 / 9), size) - math.floor(size / 2))
-finish = Coord(222, 244)
+finish = Coord(8, 16)
 print(size, 'size')
 print(start, 'start')
 print(finish, 'finish')
